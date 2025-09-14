@@ -7,8 +7,8 @@ from time import time
 
 start = time()
 
-xfunc = np.linspace(0, 1, 100000)
-xPoints = np.linspace(0.64, 0.68, 1000) # x-points to be scanned
+xfunc = np.linspace(0, 1, 10000000)
+xPoints = np.linspace(0.666817, 0.666917, 100, dtype = 'd') # x-points to be scanned
 print(xPoints) # DEBUG
 
 def curveA(x):
@@ -25,39 +25,45 @@ def pointMag(x1, y1, x2, y2):
     magnitude = np.sqrt(xMag**2 + yMag**2)
     return magnitude
 
-def findLowestMag(fileA, fileB, index):
+def findLowestMag(iPoint, yPoints, index): # iPoint is the point that you are finding the closest line point to
+                                           # yPoints is the list of y-values in the curve, index is where to start
+    # Defining immediate variables
     counter = 0
     smallestMag = 100
-    with open(fileA, 'r') as file, open(fileB, 'w') as log:
-        for line in file:
-            line = line.split(', ')
-            vectorMag = round(pointMag(float(line[0]), float(line[1]), xCenter, 0), 7)  # y2 always 0, centered on x-axis
-            if vectorMag < smallestMagA:  # Keep smallest vectorMag that has been found;
-                smallestMagA = vectorMag
-            elif vectorMag >= smallestMagA: # Break loop if the magnitude ever increases
-                break
-            counter += 1  # DEBUG
-            log.write(str(vectorMag) + ', ' + str(counter) + ', ' + str(xCenter) + '\n')  # DEBUG
+
+    for i in range((len(yPoints)) - index): # Range of points to search
+        vectorMag = pointMag(xfunc[index + i], yPoints[index + i], iPoint, 0) # Circle centered on x-axis, y always 0
+        if vectorMag < smallestMag:
+            smallestMag = vectorMag
+        else:
+            continue
+        counter += 1
+
     return smallestMag, counter
 
 # Write output of curves to array of y-values
-curveA = (x**2 for x in xfunc)
-curveB = (x**2 - 1 for x in xfunc)
-curveAOutput = np.fromiter(curveA, dtype = 'd')
-curveBOutput = np.fromiter(curveB, dtype = 'd')
+curveAiter = (x**2 for x in xfunc)
+curveBiter = (x**2 - 1 for x in xfunc)
+curveAOutput = np.fromiter(curveAiter, dtype = 'd')
+curveBOutput = np.fromiter(curveBiter, dtype = 'd')
 
 # Start scan to find the closest point on each curve; if they are equal, that might actually just be it...
 smallestMagA, smallestMagB = 100, 100 # Define smallest magnitude that is not real
 indexA, indexB = 0, 0 # Initial index
+xPointsIndex = 0 # DEBUG
+print('debug') # debug
 for xCenter in xPoints:
-    smallestMagA, indexA = findLowestMag('curveA.txt', 'magnitudesA.txt', indexA)
-    smallestMagB, indexB = findLowestMag('curveB.txt', 'magnitudesB.txt', indexB)
+    smallestMagA, indexA = findLowestMag(xCenter, curveAOutput, indexA)
+    smallestMagB, indexB = findLowestMag(xCenter, curveBOutput, indexB)
+    xPointsIndex += 1
+    print(str(round(xPointsIndex/len(xPoints) * 100, 3)) + '% ' + '(' + str(xPointsIndex) + '/' + str(len(xPoints)) + ')', flush = True)
     if np.allclose(smallestMagA, smallestMagB):
         break
     else:
         continue
 print(smallestMagA, indexA)
 print(smallestMagB, indexB)
+print(xPoints[xPointsIndex])
 
 end = time()
 
